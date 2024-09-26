@@ -22,17 +22,14 @@ public class ClientRepositoryBD extends RepositoryBDImpl<Client> implements Clie
 
     @Override
     public void insert(Client value) {
-
         try {
             String query = String.format("INSERT INTO %s (surnom, telephone, adresse) VALUES (?, ?, ?)", tableName);
             connexion();
             initPreparedStatement(query);
 
-            // Utilisez la méthode setFields pour définir les paramètres
             setFields(value.getSurnom(), value.getTelephone(), value.getAdresse());
 
-            // Exécutez la mise à jour et récupérez les clés générées
-            int lignes = executeUpdate(query, value.getSurnom(), value.getTelephone(), value.getAdresse());
+            executeUpdate(query, value.getSurnom(), value.getTelephone(), value.getAdresse());
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 value.setId(rs.getInt(1));

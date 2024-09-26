@@ -3,9 +3,13 @@ package com.dette.entities;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
+@Entity
+@Table(name = "article")
 public class Article {
     private String libelle;
     private String ref;

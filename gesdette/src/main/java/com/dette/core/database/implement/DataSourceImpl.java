@@ -98,7 +98,7 @@ public class DataSourceImpl implements DataSource {
         return sql.toString();
     }
 
-    // --------------------- generateur de set ---------------
+    // --------------------- generateur de set pour up-ins---------------
 
     @Override
     public void setFields(Object... params) throws SQLException {
@@ -109,8 +109,9 @@ public class DataSourceImpl implements DataSource {
                 ps.setInt(i + 1, (Integer) params[i]);
             } else if (params[i] instanceof Double) {
                 ps.setDouble(i + 1, (Double) params[i]);
+            } else if (params[i] instanceof Boolean) {
+                ps.setBoolean(i + 1, (Boolean) params[i]);
             }
-            // Ajouter d'autres types de données si nécessaire
         }
     }
 
