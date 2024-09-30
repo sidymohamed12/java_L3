@@ -23,7 +23,6 @@ public class UserRepositoryListe extends RepositoryListe<User> implements UserRe
                 .findFirst()
                 .orElse(null);
         if (us != null) {
-            us.setEmail(user.getEmail());
             us.setLogin(user.getLogin());
             us.setPassword(user.getPassword());
             us.setRole(user.getRole());

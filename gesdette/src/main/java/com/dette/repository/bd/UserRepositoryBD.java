@@ -2,15 +2,12 @@ package com.dette.repository.bd;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.mindrot.jbcrypt.BCrypt;
-
+import java.util.*;
 import com.dette.core.RepositoryBDImpl;
 import com.dette.entities.Client;
 import com.dette.entities.User;
-import com.dette.enums.EtatUser;
 import com.dette.enums.Role;
 import com.dette.repository.implement.UserRepository;
 
@@ -23,16 +20,16 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
     @Override
     public void insert(User value) {
         try {
+
             String query = String.format(
-                    "INSERT INTO %s (email, login, password, roleId, etatId) VALUES (?, ?, ?, ?, ?)", tableName);
+                    "INSERT INTO %s (login, password, roleId, etatId) VALUES (?, ?, ?, ?)", tableName);
             connexion();
             initPreparedStatement(query);
-            ps.setString(1, value.getEmail());
-            ps.setString(2, value.getLogin());
+            ps.setString(1, value.getLogin());
             String hashedPassword = BCrypt.hashpw(value.getPassword(), BCrypt.gensalt());
-            ps.setString(3, hashedPassword);
-            ps.setInt(4, value.getRole().ordinal() + 1);
-            ps.setInt(5, value.getEtat().ordinal() + 1);
+            ps.setString(2, hashedPassword);
+            ps.setInt(3, value.getRole().ordinal() + 1);
+            ps.setBoolean(4, value.getEtat());
             executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
@@ -40,7 +37,8 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
             }
 
         } catch (SQLException e) {
-            System.out.println("Erreur lors de l'exécution de la requête : " + e.getMessage());
+            System.out.println("Erreur lors de l'exécution de la requête : " +
+                    e.getMessage());
         }
     }
 
@@ -55,11 +53,10 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
             while (res.next()) {
                 User user = new User();
                 user.setId(res.getInt("id"));
-                user.setEmail(res.getString("email"));
                 user.setLogin(res.getString("login"));
                 user.setPassword(res.getString("password"));
                 user.setRole(Role.getRoleById(res.getInt("roleId")));
-                user.setEtat(EtatUser.getEtatById(res.getInt("etatId")));
+                user.setEtat(res.getBoolean("etat"));
                 users.add(user);
                 // users.add(converToObjet(res, User.class));
             }
@@ -81,11 +78,10 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
             if (res.next()) {
                 user = new User();
                 user.setId(res.getInt("id"));
-                user.setEmail(res.getString("email"));
                 user.setLogin(res.getString("login"));
                 user.setPassword(res.getString("password"));
                 user.setRole(Role.getRoleById(res.getInt("roleId")));
-                user.setEtat(EtatUser.getEtatById(res.getInt("etatId")));
+                user.setEtat(res.getBoolean("etat"));
             }
         } catch (SQLException e) {
             System.out.println("Erreur requête : " + e.getMessage());
@@ -97,7 +93,8 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
     public int count() {
         int count = 0;
         try {
-            String sql = String.format("SELECT id FROM %s ORDER BY id DESC LIMIT 1", tableName);
+            String sql = String.format("SELECT id FROM %s ORDER BY id DESC LIMIT 1",
+                    tableName);
             connexion();
             initPreparedStatement(sql);
             ResultSet res = ps.executeQuery();
@@ -114,18 +111,16 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
     @Override
     public void update(User value) {
         try {
-            String query = String.format(
-                    "UPDATE %s SET email = ?, login = ?, password = ?, roleId = ?, etatId = ?  WHERE id = ?",
+            String query = String.format("UPDATE %s SET login = ?, password = ?, roleId = ?, etatId = ? WHERE id = ?",
                     tableName);
             connexion();
             initPreparedStatement(query);
-            ps.setString(1, value.getEmail());
-            ps.setString(2, value.getLogin());
+            ps.setString(1, value.getLogin());
             String hashedPassword = BCrypt.hashpw(value.getPassword(), BCrypt.gensalt());
-            ps.setString(3, hashedPassword);
-            ps.setInt(4, value.getRole().ordinal() + 1);
-            ps.setInt(5, value.getEtat().ordinal() + 1);
-            ps.setInt(6, value.getId());
+            ps.setString(2, hashedPassword);
+            ps.setInt(3, value.getRole().ordinal() + 1);
+            ps.setBoolean(4, value.getEtat());
+            ps.setInt(5, value.getId());
             executeUpdate();
 
             // Print SQL statement for debugging
@@ -154,11 +149,10 @@ public class UserRepositoryBD extends RepositoryBDImpl<User> implements UserRepo
             if (res.next()) {
                 user = new User();
                 user.setId(res.getInt("id"));
-                user.setEmail(res.getString("email"));
                 user.setLogin(res.getString("login"));
                 user.setPassword(res.getString("password"));
                 user.setRole(Role.getRoleById(res.getInt("roleId")));
-                user.setEtat(EtatUser.getEtatById(res.getInt("etatId")));
+                user.setEtat(res.getBoolean("etat"));
             }
         } catch (SQLException e) {
             System.out.println("Erreur requête : " + e.getMessage());

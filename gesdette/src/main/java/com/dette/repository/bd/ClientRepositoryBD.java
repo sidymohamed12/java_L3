@@ -12,8 +12,10 @@ import com.dette.repository.implement.ClientRepository;
 import com.dette.repository.implement.UserRepository;
 
 public class ClientRepositoryBD extends RepositoryBDImpl<Client> implements ClientRepository {
+
     UserRepository userRepository;
-    private String[] colone = { "id", "surnom", "telephone", "adresse", "userId" };
+    private String[] colone = { "id", "surnom", "telephone", "adresse", "userId"
+    };
 
     public ClientRepositoryBD(UserRepository userRepository) {
         tableName = "client";
@@ -22,20 +24,30 @@ public class ClientRepositoryBD extends RepositoryBDImpl<Client> implements Clie
 
     @Override
     public void insert(Client value) {
+
         try {
-            String query = String.format("INSERT INTO %s (surnom, telephone, adresse) VALUES (?, ?, ?)", tableName);
+            String query = String.format("INSERT INTO %s (surnom, telephone, adresse, userId) VALUES (?, ?, ?, ?)",
+                    tableName);
             connexion();
             initPreparedStatement(query);
 
-            setFields(value.getSurnom(), value.getTelephone(), value.getAdresse());
-
-            executeUpdate(query, value.getSurnom(), value.getTelephone(), value.getAdresse());
+            ps.setString(1, value.getSurnom());
+            ps.setString(2, value.getTelephone());
+            ps.setString(3, value.getAdresse());
+            if (value.getUser() == null) {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            } else {
+                userRepository.insert(value.getUser());
+                ps.setInt(4, value.getUser().getId());
+            }
+            ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 value.setId(rs.getInt(1));
             }
         } catch (SQLException e) {
-            System.out.println("Erreur lors de l'exécution de la requête : " + e.getMessage());
+            System.out.println("Erreur lors de l'exécution de la requête : " +
+                    e.getMessage());
         }
 
     }
@@ -63,7 +75,8 @@ public class ClientRepositoryBD extends RepositoryBDImpl<Client> implements Clie
     public int count() {
         int count = 0;
         try {
-            String query = String.format("SELECT id FROM %s ORDER BY id DESC LIMIT 1", tableName);
+            String query = String.format("SELECT id FROM %s ORDER BY id DESC LIMIT 1",
+                    tableName);
             connexion();
             initPreparedStatement(query);
             ResultSet res = ps.executeQuery();
@@ -92,9 +105,8 @@ public class ClientRepositoryBD extends RepositoryBDImpl<Client> implements Clie
                 client.setSurnom(res.getString("surnom"));
                 client.setTelephone(res.getString("telephone"));
                 client.setAdresse(res.getString("adresse"));
-                // etudiant.setChambre(chambreRepositoryBD.selectById(res.getInt("chambreId")));
+                res.close();
             }
-            res.close();
         } catch (
 
         SQLException e) {

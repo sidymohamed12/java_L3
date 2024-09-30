@@ -4,14 +4,16 @@ import java.util.Scanner;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import com.dette.core.factory.ArticleFactory;
-import com.dette.core.factory.ClientFactory;
-import com.dette.core.factory.UserFactory;
-import com.dette.entities.Article;
+import com.dette.core.factory.Impl.FactoryRepo;
+import com.dette.core.factory.Impl.FactoryService;
+import com.dette.core.factory.Impl.FactoryView;
 import com.dette.entities.Client;
 import com.dette.entities.User;
-import com.dette.enums.EtatUser;
 import com.dette.enums.Role;
+import com.dette.services.ClientService;
+import com.dette.services.UserService;
+import com.dette.views.ClientView;
+import com.dette.views.UserView;
 
 public class Main {
     public static void main(String[] args) {
@@ -20,9 +22,28 @@ public class Main {
 
         // ----------------------------- FACTORIES -----------------------------
 
-        UserFactory userFactory = new UserFactory();
-        ClientFactory clientFactory = new ClientFactory();
-        ArticleFactory articleFactory = new ArticleFactory();
+        FactoryRepo<Client> clientRepoFactory = new FactoryRepo<>(Client.class);
+        FactoryRepo<User> userRepoFactory = new FactoryRepo<>(User.class);
+
+        // Create repositories
+        var clientRepository = clientRepoFactory.createRepository();
+        var userRepository = userRepoFactory.createRepository();
+
+        // Use the factory classes to get services
+        FactoryService<Client> clientServiceFactory = new FactoryService<>(Client.class, clientRepository);
+        FactoryService<User> userServiceFactory = new FactoryService<>(User.class, userRepository);
+
+        // Get services from the factory
+        ClientService clientService = (ClientService) clientServiceFactory.createService();
+        UserService userService = (UserService) userServiceFactory.createService();
+
+        // Use the FactoryView to create the UserView first
+        FactoryView<User> userViewFactory = new FactoryView<>(User.class, null, scanner);
+        UserView userView = (UserView) userViewFactory.createView();
+
+        // Now create the ClientView, passing the UserView
+        FactoryView<Client> clientViewFactory = new FactoryView<>(Client.class, userService, scanner);
+        ClientView clientView = (ClientView) clientViewFactory.createView();
 
         // ----------------------------------------------------------
 
@@ -50,23 +71,48 @@ public class Main {
 
             switch (choice) {
                 case 1 -> {
-                    clientFactory.getClientService().create(clientFactory.getClientView(scanner).saisie());
+                    Client client = clientView.saisie();
+                    clientService.create(client);
+                    System.out.println("Voulez-vous ajouter un compte pour ce client : ");
+                    if (clientView.askToContinue()) {
+                        scanner.nextLine();
+                        User user = new User();
+                        System.out.println("entrer le login : ");
+                        user.setLogin(scanner.nextLine());
+                        System.out.println("entrer le mdp : ");
+                        user.setPassword(scanner.nextLine());
+                        user.setRole(Role.client);
+                        user.setEtat(true);
+                        userService.create(user);
+                        client.setUser(user);
+                        clientService.modifier(client);
+                    }
+
                 }
                 case 2 -> {
-                    clientFactory.getClientService().findAll().forEach(System.out::println);
+                    clientService.findAll().forEach(System.out::println);
                 }
                 case 3 -> {
-                    clientFactory.getClientService().findAll().forEach(System.out::println);
+                    clientService.findAll().forEach(System.out::println);
                     System.out.println("Entrez le telephone du client : ");
                     String tel = scanner.nextLine();
-                    Client client = clientFactory.getClientService().getBy(tel);
+                    Client client = clientService.getBy(tel);
                     if (client != null) {
                         System.out.println("client : " + client);
                         if (client.getUser() == null) {
-                            User user = userFactory.getUserView(scanner).saisie();
-                            userFactory.getUserService().create(user);
+                            User user = new User();
+                            System.out.println("entrer le login : ");
+                            user.setLogin(scanner.nextLine());
+                            System.out.println("entrer le mdp : ");
+                            user.setPassword(scanner.nextLine());
+                            user.setRole(Role.client);
+                            user.setEtat(true);
+
+                            userService.create(user);
+
                             client.setUser(user);
-                            clientFactory.getClientService().modifier(client);
+
+                            clientService.modifier(client);
                         } else {
                             System.out.println("Le client a déjà un utilisateur associé.");
                         }
@@ -75,20 +121,20 @@ public class Main {
                     }
                 }
                 case 4 -> {
-                    userFactory.getUserService().create(userFactory.getUserView(scanner).saisie());
+                    userService.create(userView.saisie());
                 }
                 case 5 -> {
-                    userFactory.getUserService().findAll().forEach(System.out::println);
+                    userService.findAll().forEach(System.out::println);
                 }
                 case 6 -> {
-                    userFactory.getUserService().findAll().forEach(System.out::println);
+                    userService.findAll().forEach(System.out::println);
                     System.out.println("Entrez le login du compte user à activer : ");
                     String login = scanner.nextLine();
-                    User user = userFactory.getUserService().getBy(login);
+                    User user = userService.getBy(login);
                     if (user != null) {
-                        if (user.getEtat() != EtatUser.Activer) {
-                            user.setEtat(EtatUser.Activer);
-                            userFactory.getUserService().modifier(user);
+                        if (!user.getEtat()) {
+                            user.setEtat(true);
+                            userService.modifier(user);
                         } else {
                             System.out.println("User déjà Activé");
                         }
@@ -97,14 +143,14 @@ public class Main {
                     }
                 }
                 case 7 -> {
-                    userFactory.getUserService().findAll().forEach(System.out::println);
+                    userService.findAll().forEach(System.out::println);
                     System.out.println("Entrez le login du compte user à désactiver : ");
                     String login = scanner.nextLine();
-                    User user = userFactory.getUserService().getBy(login);
+                    User user = userService.getBy(login);
                     if (user != null) {
-                        if (user.getEtat() != EtatUser.Desactiver) {
-                            user.setEtat(EtatUser.Desactiver);
-                            userFactory.getUserService().modifier(user);
+                        if (user.getEtat()) {
+                            user.setEtat(false);
+                            userService.modifier(user);
                         } else {
                             System.out.println("User déjà désactivé");
                         }
@@ -113,51 +159,23 @@ public class Main {
                     }
                 }
                 case 8 -> {
-                    userFactory.getUserService().findAll()
+                    userService.findAll()
                             .stream()
-                            .filter(user -> user.getEtat() == EtatUser.Activer)
+                            .filter(user -> user.getEtat() == true)
                             .forEach(System.out::println);
                 }
                 case 9 -> {
-                    Role role = userFactory.getUserView(scanner).saisieRoleUser();
-                    userFactory.getUserService().findAll()
+                    Role role = userView.saisieRoleUser();
+                    userService.findAll()
                             .stream().filter(user -> user.getRole() == role)
                             .forEach(System.out::println);
                 }
-                case 10 -> {
-                    articleFactory.getArticleService().create(articleFactory.getArticleView(scanner).saisie());
-                }
-                case 11 -> {
-                    articleFactory.getArticleService().findAll().forEach(System.out::println);
-                }
-                case 12 -> {
-                    articleFactory.getArticleService().findAll()
-                            .stream()
-                            .filter(article -> article.getQteStock() != 0)
-                            .forEach(System.out::println);
-                }
-                case 13 -> {
-                    articleFactory.getArticleService().findAll().forEach(System.out::println);
-                    System.out.println("Entrez l'article : ");
-                    String libelle = scanner.nextLine();
-                    Article article = articleFactory.getArticleService().getBy(libelle);
-                    if (article == null) {
-                        System.out.println("Article introuvable");
-                    } else {
-                        int nbr;
-                        do {
-                            nbr = scanner.nextInt();
-                            System.out.println("Entrez la nouvelle quantité : ");
-                        } while (nbr <= 0);
-                        article.setQteStock(nbr);
-                        articleFactory.getArticleService().modifier(article);
-                    }
-                }
+
                 case 14 -> {
-                    clientFactory.getClientService().findAll().forEach(System.out::println);
+                    clientService.findAll().forEach(System.out::println);
                     System.out.println("Entrez le telephone du client : ");
                     String tel = scanner.nextLine();
-                    Client client = clientFactory.getClientService().getBy(tel);
+                    Client client = clientService.getBy(tel);
                     if (client != null) {
                         System.out.println("client : " + client);
                     } else {
@@ -165,10 +183,10 @@ public class Main {
                     }
                 }
                 case 15 -> {
-                    userFactory.getUserService().findAll().forEach(System.out::println);
+                    userService.findAll().forEach(System.out::println);
                     System.out.println("Entrez le login du compte : ");
                     String login = scanner.nextLine();
-                    User user = userFactory.getUserService().getBy(login);
+                    User user = userService.getBy(login);
                     System.out.println(user);
                     System.out.println("entrez le mdp");
                     if (BCrypt.checkpw(scanner.nextLine(), user.getPassword())) {

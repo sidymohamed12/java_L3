@@ -5,7 +5,6 @@ import java.util.Scanner;
 
 import com.dette.core.ViewImplement;
 import com.dette.entities.User;
-import com.dette.enums.EtatUser;
 import com.dette.enums.Role;
 
 public class UserView extends ViewImplement<User> {
@@ -16,12 +15,18 @@ public class UserView extends ViewImplement<User> {
 
     public User saisie() {
         User user = new User();
+        int choix;
         System.out.println("entrer le login : ");
         user.setLogin(scanner.nextLine());
         System.out.println("entrer le mdp : ");
         user.setPassword(scanner.nextLine());
-        user.setRole(saisieRoleUser());
-        user.setEtat(EtatUser.Activer);
+        do {
+            System.out.println("1- admin");
+            System.out.println("2- boutiquier");
+            choix = scanner.nextInt();
+        } while (choix <= 0 || choix > 2);
+        user.setRole(Role.values()[choix - 1]);
+        user.setEtat(true);
         return user;
     }
 
